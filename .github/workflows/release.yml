@@ -1,0 +1,69 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build and Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+
+      - name: Build Binaries
+        run: |
+          mkdir -p dist
+          TAG=${GITHUB_REF#refs/tags/}
+          
+          # Target platforms
+          PLATFORMS=(
+            "linux/amd64"
+            "linux/arm64"
+            "darwin/amd64"
+            "darwin/arm64"
+            "windows/amd64"
+          )
+          
+          for PLATFORM in "${PLATFORMS[@]}"; do
+            OS=$(echo $PLATFORM | cut -d'/' -f1)
+            ARCH=$(echo $PLATFORM | cut -d'/' -f2)
+            BINARY_NAME="terraform-provider-cockpit_${TAG}_${OS}_${ARCH}"
+            
+            if [ "$OS" = "windows" ]; then
+              BINARY_NAME="${BINARY_NAME}.exe"
+            fi
+            
+            echo "Building for $OS/$ARCH..."
+            GOOS=$OS GOARCH=$ARCH CGO_ENABLED=0 go build -ldflags="-s -w" -o "dist/$BINARY_NAME" main.go
+            
+            # Package into zip or tar.gz
+            cd dist
+            if [ "$OS" = "windows" ]; then
+              zip "${BINARY_NAME}.zip" "$BINARY_NAME"
+              rm "$BINARY_NAME"
+            else
+              tar -czvf "${BINARY_NAME}.tar.gz" "$BINARY_NAME"
+              rm "$BINARY_NAME"
+            fi
+            cd ..
+          done
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/*.tar.gz
+            dist/*.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
