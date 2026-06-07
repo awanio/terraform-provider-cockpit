@@ -95,6 +95,8 @@ func (p *CockpitProvider) Resources(ctx context.Context) []func() resource.Resou
 		NewHostResource,
 		NewVirtualMachineResource,
 		NewKubernetesClusterResource,
+		NewDatastoreResource,
+		NewSwitchResource,
 	}
 }
 

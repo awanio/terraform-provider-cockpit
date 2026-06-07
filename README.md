@@ -159,6 +159,71 @@ resource "cockpit_kubernetes_cluster" "k8s" {
 
 ---
 
+### cockpit_datastore
+
+Manages a Datastore (storage pool) on a Vapor host connected to Cockpit.
+
+#### Example Usage
+
+```hcl
+resource "cockpit_datastore" "example" {
+  name      = "nfs-images"
+  host_id   = "host-uuid-here"
+  type      = "netfs"
+  path      = "/var/lib/libvirt/images/nfs-images"
+  source    = "10.0.0.5:/exports/images"
+  autostart = true
+  scope     = "shared"
+}
+```
+
+#### Argument Reference
+
+- `name` (String, Required) - Name of the storage pool / datastore.
+- `host_id` (String, Required) - Target Vapor Host ID.
+- `type` (String, Required) - Type of storage pool (e.g. `dir`, `netfs`, `logical`, `fs`).
+- `path` (String, Optional) - Target mount path for directory/netfs pool.
+- `source` (String, Optional) - Source path or host directory (e.g., NFS server export source).
+- `target` (String, Optional) - Target storage path.
+- `autostart` (Boolean, Optional) - Whether to start the storage pool automatically on host boot (defaults to true).
+- `scope` (String, Optional) - Scope of the datastore (`local` or `shared`, defaults to `local`).
+
+---
+
+### cockpit_switch
+
+Manages a Switch (virtual network) on a Vapor host connected to Cockpit.
+
+#### Example Usage
+
+```hcl
+resource "cockpit_switch" "example" {
+  name       = "vnet-nat-example"
+  host_id    = "host-uuid-here"
+  mode       = "nat"
+  ip_address = "192.168.100.1"
+  netmask    = "255.255.255.0"
+  dhcp_start = "192.168.100.10"
+  dhcp_end   = "192.168.100.100"
+  autostart  = true
+}
+```
+
+#### Argument Reference
+
+- `name` (String, Required) - Name of the network switch.
+- `host_id` (String, Required) - Target Vapor Host ID.
+- `mode` (String, Required) - Virtual network mode (`nat`, `bridge`, `route`, `isolated`).
+- `bridge` (String, Optional) - Bridge device name.
+- `ip_address` (String, Optional) - IP address of the bridge interface.
+- `netmask` (String, Optional) - Netmask of the bridge interface network.
+- `dhcp_start` (String, Optional) - DHCP start IP address pool.
+- `dhcp_end` (String, Optional) - DHCP end IP address pool.
+- `autostart` (Boolean, Optional) - Whether to start the switch automatically on host boot (defaults to true).
+- `domain` (String, Optional) - DNS Domain name config for DHCP clients.
+
+---
+
 ## Developing the Provider
 
 To compile the provider locally, run:

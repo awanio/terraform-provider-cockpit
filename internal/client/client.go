@@ -345,3 +345,168 @@ func (c *Client) GetK8sClusterKubeconfig(clusterID string) (string, error) {
 	}
 	return string(body), nil
 }
+
+// Switch (Network) management models
+type NetworkCreateRequest struct {
+	Name      string `json:"name"`
+	Mode      string `json:"mode"` // nat, bridge, route, isolated
+	Bridge    string `json:"bridge,omitempty"`
+	IPAddress string `json:"ip_address,omitempty"`
+	Netmask   string `json:"netmask,omitempty"`
+	DHCPStart string `json:"dhcp_start,omitempty"`
+	DHCPEnd   string `json:"dhcp_end,omitempty"`
+	Autostart bool   `json:"autostart"`
+	Domain    string `json:"domain,omitempty"`
+}
+
+type CreateSwitchRequest struct {
+	HostID  string               `json:"host_id"`
+	Network NetworkCreateRequest `json:"network"`
+}
+
+type NetworkUpdateRequest struct {
+	Autostart *bool  `json:"autostart,omitempty"`
+	DHCPStart string `json:"dhcp_start,omitempty"`
+	DHCPEnd   string `json:"dhcp_end,omitempty"`
+}
+
+type SwitchResponse struct {
+	ID         string `json:"id"`
+	Name       string `json:"name"`
+	HostID     string `json:"host_id"`
+	SwitchUUID string `json:"switch_uuid"`
+	Driver     string `json:"driver"`
+	Scope      string `json:"scope"`
+	State      string `json:"state"`
+	Bridge     string `json:"bridge,omitempty"`
+	Mode       string `json:"mode,omitempty"`
+	IPAddress  string `json:"ip_address,omitempty"`
+	Netmask    string `json:"netmask,omitempty"`
+	DHCPStart  string `json:"dhcp_start,omitempty"`
+	DHCPEnd    string `json:"dhcp_end,omitempty"`
+	Autostart  bool   `json:"autostart"`
+	Persistent bool   `json:"persistent"`
+}
+
+func (c *Client) CreateSwitch(req *CreateSwitchRequest) (*SwitchResponse, error) {
+	data, err := json.Marshal(req)
+	if err != nil {
+		return nil, err
+	}
+	var resp SwitchResponse
+	err = c.doRequest("POST", "/switches", data, &resp)
+	if err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+func (c *Client) GetSwitch(id string) (*SwitchResponse, error) {
+	var resp SwitchResponse
+	err := c.doRequest("GET", fmt.Sprintf("/switches/%s", id), nil, &resp)
+	if err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+func (c *Client) UpdateSwitch(id string, req *NetworkUpdateRequest) (*SwitchResponse, error) {
+	data, err := json.Marshal(req)
+	if err != nil {
+		return nil, err
+	}
+	var resp SwitchResponse
+	err = c.doRequest("PUT", fmt.Sprintf("/switches/%s", id), data, &resp)
+	if err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+func (c *Client) DeleteSwitch(id string) error {
+	return c.doRequest("DELETE", fmt.Sprintf("/switches/%s", id), nil, nil)
+}
+
+// Datastore (Storage Pool) management models
+type StoragePoolCreateRequest struct {
+	Name                  string   `json:"name"`
+	Type                  string   `json:"type"` // dir, netfs, logical, fs
+	Path                  string   `json:"path,omitempty"`
+	Source                string   `json:"source,omitempty"`
+	Target                string   `json:"target,omitempty"`
+	Autostart             bool     `json:"autostart"`
+	Username              string   `json:"username,omitempty"`
+	Password              string   `json:"password,omitempty"`
+	SourceDevice          string   `json:"source_device,omitempty"`
+	Filesystem            string   `json:"filesystem,omitempty"`
+	InitializeFilesystem  bool     `json:"initialize_filesystem,omitempty"`
+	Overwrite             bool     `json:"overwrite,omitempty"`
+	Ocfs2HeartbeatMode    string   `json:"ocfs2_heartbeat_mode,omitempty"`
+	Ocfs2NodeSlots        int      `json:"ocfs2_node_slots,omitempty"`
+	Ocfs2LocalNodeIP      string   `json:"ocfs2_local_node_ip,omitempty"`
+	Ocfs2PeerNodeIPs      []string `json:"ocfs2_peer_node_ips,omitempty"`
+	Ocfs2HeartbeatRegions []string `json:"ocfs2_heartbeat_regions,omitempty"`
+}
+
+type CreateDatastoreRequest struct {
+	HostID string                   `json:"host_id"`
+	Scope  string                   `json:"scope,omitempty"`
+	Pool   StoragePoolCreateRequest `json:"pool"`
+}
+
+type StoragePoolUpdateRequest struct {
+	Autostart *bool `json:"autostart,omitempty"`
+}
+
+type DatastoreResponse struct {
+	ID             string `json:"id"`
+	Name           string `json:"name"`
+	HostID         string `json:"host_id"`
+	Driver         string `json:"driver"`
+	Scope          string `json:"scope"`
+	CapacityBytes  int64  `json:"capacity_bytes"`
+	UsedBytes      int64  `json:"used_bytes"`
+	AvailableBytes int64  `json:"available_bytes"`
+	MountPath      string `json:"mount_path"`
+	State          string `json:"state"`
+	Autostart      bool   `json:"autostart"`
+}
+
+func (c *Client) CreateDatastore(req *CreateDatastoreRequest) (*DatastoreResponse, error) {
+	data, err := json.Marshal(req)
+	if err != nil {
+		return nil, err
+	}
+	var resp DatastoreResponse
+	err = c.doRequest("POST", "/datastores", data, &resp)
+	if err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+func (c *Client) GetDatastore(id string) (*DatastoreResponse, error) {
+	var resp DatastoreResponse
+	err := c.doRequest("GET", fmt.Sprintf("/datastores/%s", id), nil, &resp)
+	if err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+func (c *Client) UpdateDatastore(id string, req *StoragePoolUpdateRequest) (*DatastoreResponse, error) {
+	data, err := json.Marshal(req)
+	if err != nil {
+		return nil, err
+	}
+	var resp DatastoreResponse
+	err = c.doRequest("PUT", fmt.Sprintf("/datastores/%s", id), data, &resp)
+	if err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
+func (c *Client) DeleteDatastore(id string) error {
+	return c.doRequest("DELETE", fmt.Sprintf("/datastores/%s", id), nil, nil)
+}
