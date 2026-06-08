@@ -21,10 +21,17 @@ jobs:
         with:
           go-version: '1.25'
 
+      - name: Import GPG key
+        uses: crazy-max/ghaction-import-gpg@v6
+        with:
+          gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
+          passphrase: ${{ secrets.GPG_PASSPHRASE }}
+
       - name: Build Binaries
         run: |
-          mkdir -p dist
+          # Get version from tag (e.g. v1.0.0 -> 1.0.0)
           TAG=${GITHUB_REF#refs/tags/}
+          VERSION=${TAG#v}
           
           # Target platforms
           PLATFORMS=(
@@ -35,35 +42,49 @@ jobs:
             "windows/amd64"
           )
           
+          mkdir -p dist
+          
           for PLATFORM in "${PLATFORMS[@]}"; do
             OS=$(echo $PLATFORM | cut -d'/' -f1)
             ARCH=$(echo $PLATFORM | cut -d'/' -f2)
-            BINARY_NAME="terraform-provider-cockpit_${TAG}_${OS}_${ARCH}"
             
+            BINARY_NAME="terraform-provider-cockpit_v${VERSION}"
             if [ "$OS" = "windows" ]; then
               BINARY_NAME="${BINARY_NAME}.exe"
             fi
             
+            ZIP_NAME="terraform-provider-cockpit_${VERSION}_${OS}_${ARCH}.zip"
+            
             echo "Building for $OS/$ARCH..."
             GOOS=$OS GOARCH=$ARCH CGO_ENABLED=0 go build -ldflags="-s -w" -o "dist/$BINARY_NAME" main.go
             
-            # Package into zip or tar.gz
+            # Package as ZIP (Terraform Registry requires ZIP for all platforms)
             cd dist
-            if [ "$OS" = "windows" ]; then
-              zip "${BINARY_NAME}.zip" "$BINARY_NAME"
-              rm "$BINARY_NAME"
-            else
-              tar -czvf "${BINARY_NAME}.tar.gz" "$BINARY_NAME"
-              rm "$BINARY_NAME"
-            fi
+            zip "$ZIP_NAME" "$BINARY_NAME"
+            rm "$BINARY_NAME"
             cd ..
           done
+
+      - name: Calculate Checksums
+        run: |
+          TAG=${GITHUB_REF#refs/tags/}
+          VERSION=${TAG#v}
+          cd dist
+          sha256sum *.zip > "terraform-provider-cockpit_${VERSION}_SHA256SUMS"
+
+      - name: Sign Checksums
+        run: |
+          TAG=${GITHUB_REF#refs/tags/}
+          VERSION=${TAG#v}
+          cd dist
+          gpg --batch --yes --armor --detach-sign --output "terraform-provider-cockpit_${VERSION}_SHA256SUMS.sig" "terraform-provider-cockpit_${VERSION}_SHA256SUMS"
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            dist/*.tar.gz
             dist/*.zip
+            dist/*_SHA256SUMS
+            dist/*_SHA256SUMS.sig
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
