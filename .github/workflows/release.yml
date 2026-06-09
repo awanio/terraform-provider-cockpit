@@ -77,7 +77,7 @@ jobs:
           TAG=${GITHUB_REF#refs/tags/}
           VERSION=${TAG#v}
           cd dist
-          gpg --batch --yes --armor --detach-sign --output "terraform-provider-cockpit_${VERSION}_SHA256SUMS.sig" "terraform-provider-cockpit_${VERSION}_SHA256SUMS"
+          gpg --batch --yes --detach-sign --output "terraform-provider-cockpit_${VERSION}_SHA256SUMS.sig" "terraform-provider-cockpit_${VERSION}_SHA256SUMS"
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
